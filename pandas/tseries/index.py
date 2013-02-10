@@ -7,7 +7,7 @@ from datetime import timedelta
 import numpy as np
 
 from pandas.core.common import isnull
-from pandas.core.index import Index, Int64Index
+from pandas.core.index import Index, Int64Index, IndexBase
 from pandas.tseries.frequencies import (
     infer_freq, to_offset, get_period_alias,
     Resolution, get_reso_string)
@@ -143,10 +143,10 @@ class DatetimeIndex(Int64Index):
 
     offset = None
 
-    def __new__(cls, data=None,
-                freq=None, start=None, end=None, periods=None,
-                copy=False, name=None, tz=None,
-                verify_integrity=True, normalize=False, **kwds):
+    def __init__(self, data=None,
+                 freq=None, start=None, end=None, periods=None,
+                 copy=False, name=None, tz=None,
+                 verify_integrity=True, normalize=False, **kwds):
 
         dayfirst = kwds.pop('dayfirst', None)
         yearfirst = kwds.pop('yearfirst', None)
@@ -183,8 +183,9 @@ class DatetimeIndex(Int64Index):
                              "supplied")
 
         if data is None:
-            return cls._generate(start, end, periods, name, offset,
-                                 tz=tz, normalize=normalize)
+            data, name, offset, tz = self._generate(start, end, periods,
+                                                    name, offset, tz=tz,
+                                                    normalize=normalize)
 
         if not isinstance(data, np.ndarray):
             if np.isscalar(data):
@@ -210,9 +211,9 @@ class DatetimeIndex(Int64Index):
                         data.name = name
 
                     if tz is not None:
-                        return data.tz_localize(tz)
-
-                    return data
+                        subarr = data.tz_localize(tz)
+                    else:
+                        subarr = data
 
         if issubclass(data.dtype.type, basestring):
             subarr = _str_to_dt_array(data, offset, dayfirst=dayfirst,
@@ -265,24 +266,26 @@ class DatetimeIndex(Int64Index):
 
                 subarr = subarr.view(_NS_DTYPE)
 
-        subarr = subarr.view(cls)
-        subarr.name = name
-        subarr.offset = offset
-        subarr.tz = tz
+        if isinstance(subarr, DatetimeIndex):
+            subarr = subarr._values
+
+        self._values = subarr
+
+        self.name = name
+        self.offset = offset
+        self.tz = tz
 
         if verify_integrity and len(subarr) > 0:
             if offset is not None and not freq_infer:
-                inferred = subarr.inferred_freq
+                inferred = self.inferred_freq
                 if inferred != offset.freqstr:
                     raise ValueError('Dates do not conform to passed '
                                      'frequency')
 
         if freq_infer:
-            inferred = subarr.inferred_freq
+            inferred = self.inferred_freq
             if inferred:
-                subarr.offset = to_offset(inferred)
-
-        return subarr
+                self.offset = to_offset(inferred)
 
     @classmethod
     def _generate(cls, start, end, periods, name, offset,
@@ -374,12 +377,7 @@ class DatetimeIndex(Int64Index):
                 index = tslib.tz_localize_to_utc(com._ensure_int64(index), tz)
                 index = index.view(_NS_DTYPE)
 
-        index = index.view(cls)
-        index.name = name
-        index.offset = offset
-        index.tz = tz
-
-        return index
+        return index, name, offset, tz
 
     def _box_values(self, values):
         return lib.map_infer(values, lib.Timestamp)
@@ -404,12 +402,12 @@ class DatetimeIndex(Int64Index):
         if values.dtype != _NS_DTYPE:
             values = com._ensure_int64(values).view(_NS_DTYPE)
 
-        result = values.view(cls)
-        result.name = name
-        result.offset = freq
-        result.tz = tools._maybe_get_tz(tz)
+        obj = IndexBase(values, name=name)
+        obj.__class__ = cls
+        obj.offset = freq
+        obj.tz = tools._maybe_get_tz(tz)
 
-        return result
+        return obj
 
     @property
     def tzinfo(self):
@@ -1193,7 +1191,7 @@ class DatetimeIndex(Int64Index):
 
     def __getitem__(self, key):
         """Override numpy.ndarray's __getitem__ method to work as desired"""
-        arr_idx = self.view(np.ndarray)
+        arr_idx = self.values
         if np.isscalar(key):
             val = arr_idx[key]
             return Timestamp(val, offset=self.offset, tz=self.tz)

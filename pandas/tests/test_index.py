@@ -11,7 +11,7 @@ import numpy as np
 from numpy.testing import assert_array_equal
 
 from pandas.core.categorical import Factor
-from pandas.core.index import Index, Int64Index, MultiIndex
+from pandas.core.index import Index, Int64Index, MultiIndex, ObjectIndex
 from pandas.util.testing import assert_almost_equal
 from pandas.util import py3compat
 import pandas.core.common as com
@@ -67,10 +67,10 @@ class TestIndex(unittest.TestCase):
         tm.assert_contains_all(self.dateIndex, self.dateIndex)
 
         # casting
-        arr = np.array(self.strIndex)
-        index = arr.view(Index)
-        tm.assert_contains_all(arr, index)
-        self.assert_(np.array_equal(self.strIndex, index))
+        # arr = np.array(self.strIndex)
+        # index = arr.view(Index)
+        # tm.assert_contains_all(arr, index)
+        # self.assert_(np.array_equal(self.strIndex, index))
 
         # copy
         arr = np.array(self.strIndex)
@@ -99,10 +99,10 @@ class TestIndex(unittest.TestCase):
         i_copy = i.copy()
         self.assert_(i_copy.name == 'Foo')
 
-    def test_view(self):
-        i = Index([], name='Foo')
-        i_view = i.view()
-        self.assert_(i_view.name == 'Foo')
+    # def test_view(self):
+    #     i = Index([], name='Foo')
+    #     i_view = i.view()
+    #     self.assert_(i_view.name == 'Foo')
 
     def test_astype(self):
         casted = self.intIndex.astype('i8')
@@ -556,10 +556,10 @@ class TestInt64Index(unittest.TestCase):
         i_copy = i.copy()
         self.assert_(i_copy.name == 'Foo')
 
-    def test_view(self):
-        i = Int64Index([], name='Foo')
-        i_view = i.view()
-        self.assert_(i_view.name == 'Foo')
+    # def test_view(self):
+    #     i = Int64Index([], name='Foo')
+    #     i_view = i.view()
+    #     self.assert_(i_view.name == 'Foo')
 
     def test_coerce_list(self):
         # coerce things
@@ -568,7 +568,7 @@ class TestInt64Index(unittest.TestCase):
 
         # but not if explicit dtype passed
         arr = Index([1, 2, 3, 4], dtype=object)
-        self.assert_(type(arr) == Index)
+        self.assert_(type(arr) == ObjectIndex)
 
     def test_dtype(self):
         self.assert_(self.index.dtype == np.int64)
@@ -826,11 +826,11 @@ class TestInt64Index(unittest.TestCase):
         now = datetime.now()
         other = Index([now + timedelta(i) for i in xrange(4)], dtype=object)
         result = self.index.union(other)
-        expected = np.concatenate((self.index, other))
+        expected = np.concatenate((self.index.values, other.values))
         self.assert_(np.array_equal(result, expected))
 
         result = other.union(self.index)
-        expected = np.concatenate((other, self.index))
+        expected = np.concatenate((other.values, self.index.values))
         self.assert_(np.array_equal(result, expected))
 
     def test_cant_or_shouldnt_cast(self):
@@ -841,9 +841,6 @@ class TestInt64Index(unittest.TestCase):
         # shouldn't
         data = ['0', '1', '2']
         self.assertRaises(TypeError, Int64Index, data)
-
-    def test_view_Index(self):
-        self.index.view(Index)
 
     def test_prevent_casting(self):
         result = self.index.astype('O')
@@ -932,34 +929,34 @@ class TestMultiIndex(unittest.TestCase):
 
         self.assert_(i_copy.sortorder == self.index.sortorder)
 
-    def test_shallow_copy(self):
-        i_copy = self.index._shallow_copy()
+    # def test_shallow_copy(self):
+    #     i_copy = self.index._shallow_copy()
 
-        # Equal...but not the same object
-        self.assert_(i_copy.levels == self.index.levels)
-        self.assert_(i_copy.levels is not self.index.levels)
+    #     # Equal...but not the same object
+    #     self.assert_(i_copy.levels == self.index.levels)
+    #     self.assert_(i_copy.levels is not self.index.levels)
 
-        self.assert_(i_copy.labels == self.index.labels)
-        self.assert_(i_copy.labels is not self.index.labels)
+    #     self.assert_(i_copy.labels == self.index.labels)
+    #     self.assert_(i_copy.labels is not self.index.labels)
 
-        self.assert_(i_copy.names == self.index.names)
-        self.assert_(i_copy.names is not self.index.names)
+    #     self.assert_(i_copy.names == self.index.names)
+    #     self.assert_(i_copy.names is not self.index.names)
 
-        self.assert_(i_copy.sortorder == self.index.sortorder)
+    #     self.assert_(i_copy.sortorder == self.index.sortorder)
 
-    def test_view(self):
-        i_view = self.index.view()
+    # def test_view(self):
+    #     i_view = self.index.view()
 
-        # Equal...but not the same object
-        self.assert_(i_view.levels == self.index.levels)
-        self.assert_(i_view.levels is not self.index.levels)
+    #     # Equal...but not the same object
+    #     self.assert_(i_view.levels == self.index.levels)
+    #     self.assert_(i_view.levels is not self.index.levels)
 
-        self.assert_(i_view.labels == self.index.labels)
-        self.assert_(i_view.labels is not self.index.labels)
+    #     self.assert_(i_view.labels == self.index.labels)
+    #     self.assert_(i_view.labels is not self.index.labels)
 
-        self.assert_(i_view.names == self.index.names)
-        self.assert_(i_view.names is not self.index.names)
-        self.assert_(i_view.sortorder == self.index.sortorder)
+    #     self.assert_(i_view.names == self.index.names)
+    #     self.assert_(i_view.names is not self.index.names)
+    #     self.assert_(i_view.sortorder == self.index.sortorder)
 
     def test_duplicate_names(self):
         self.index.names = ['foo', 'foo']

@@ -514,7 +514,7 @@ class PeriodIndex(Int64Index):
     __le__ = _period_index_cmp('__le__')
     __ge__ = _period_index_cmp('__ge__')
 
-    def __new__(cls, data=None, ordinal=None,
+    def __init__(self, data=None, ordinal=None,
                 freq=None, start=None, end=None, periods=None,
                 copy=False, name=None,
                 year=None, month=None, quarter=None, day=None,
@@ -535,17 +535,15 @@ class PeriodIndex(Int64Index):
                 data = np.asarray(ordinal, dtype=np.int64)
             else:
                 fields = [year, month, quarter, day, hour, minute, second]
-                data, freq = cls._generate_range(start, end, periods,
-                                                 freq, fields)
+                data, freq = self._generate_range(start, end, periods,
+                                                  freq, fields)
         else:
-            ordinal, freq = cls._from_arraylike(data, freq, tz)
+            ordinal, freq = self._from_arraylike(data, freq, tz)
             data = np.array(ordinal, dtype=np.int64, copy=False)
 
-        subarr = data.view(cls)
-        subarr.name = name
-        subarr.freq = freq
-
-        return subarr
+        self._values = data
+        self.name = name
+        self.freq = freq
 
     @classmethod
     def _generate_range(cls, start, end, periods, freq, fields):

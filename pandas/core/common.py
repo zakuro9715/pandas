@@ -428,7 +428,7 @@ def _get_take_1d_function(dtype, out_dtype):
     except KeyError:
         pass
 
-    if dtype != out_dtype: 
+    if dtype != out_dtype:
         try:
             func = _take_1d_dict[out_dtype.name, out_dtype.name]
             return _convert_wrapper(func, out_dtype)
@@ -454,7 +454,7 @@ def _get_take_2d_function(dtype, out_dtype, axis=0):
     except KeyError:
         pass
 
-    if dtype != out_dtype: 
+    if dtype != out_dtype:
         try:
             if axis == 0:
                 func = _take_2d_axis0_dict[out_dtype.name, out_dtype.name]
@@ -686,7 +686,7 @@ def _maybe_upcast(values):
     elif issubclass(values.dtype.type, np.bool_):
         values = values.astype(np.object_)
     return values
- 
+
 
 def _interp_wrapper(f, wrap_dtype, na_override=None):
     def wrapper(arr, mask, limit=None):
@@ -824,7 +824,7 @@ def _possibly_convert_objects(values, convert_dates=True, convert_numeric=True):
     if values.dtype == np.object_ and convert_numeric:
         try:
             new_values = lib.maybe_convert_numeric(values,set(),coerce_numeric=True)
-            
+
             # if we are all nans then leave me alone
             if not isnull(new_values).all():
                 values = new_values
@@ -923,9 +923,7 @@ def _is_bool_indexer(key):
 def _default_index(n):
     from pandas.core.index import Int64Index
     values = np.arange(n, dtype=np.int64)
-    result = values.view(Int64Index)
-    result.name = None
-    return result
+    return Int64Index(values)
 
 
 def ensure_float(arr):
@@ -1072,7 +1070,7 @@ def _long_prod(vals):
         result *= x
     return result
 
-    
+
 class groupby(dict):
     """
     A simple groupby different from the one in itertools.
@@ -1137,10 +1135,10 @@ def _shift_indexer(N, periods):
 def _asarray_tuplesafe(values, dtype=None):
     from pandas.core.index import Index
 
-    if not isinstance(values, (list, tuple, np.ndarray)):
-        values = list(values)
-    elif isinstance(values, Index):
+    if isinstance(values, Index):
         return values.values
+    elif not isinstance(values, (list, tuple, np.ndarray)):
+        values = list(values)
 
     if isinstance(values, list) and dtype in [np.object_, object]:
         return lib.list_to_object_array(values)
