@@ -2217,14 +2217,7 @@ class Timedelta(_Timedelta):
             if not len(kwargs):
                 raise ValueError("cannot construct a TimeDelta without a value/unit or descriptive keywords (days,seconds....)")
 
-            def _to_py_int_float(v):
-                if is_integer_object(v):
-                    return int(v)
-                elif is_float_object(v):
-                    return float(v)
-                raise TypeError("Invalid type {0}. Must be int or float.".format(type(v)))
-
-            kwargs = dict([ (k, _to_py_int_float(v)) for k, v in iteritems(kwargs) ])
+            kwargs = dict([ (k, to_py_int_float(v)) for k, v in iteritems(kwargs) ])
 
             try:
                 nano = kwargs.pop('nanoseconds',0)
@@ -2609,6 +2602,13 @@ def array_to_timedelta64(ndarray[object] values, unit='ns', errors='raise'):
         for i in range(n):
             result[i] = convert_to_timedelta64(values[i], unit, is_coerce)
     return iresult
+
+def to_py_int_float(v):
+    if is_integer_object(v):
+        return int(v)
+    elif is_float_object(v):
+        return float(v)
+    raise TypeError("Invalid type {0}. Must be int or float.".format(type(v)))
 
 
 def convert_to_timedelta(object ts, object unit='ns', errors='raise'):
