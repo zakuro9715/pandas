@@ -291,11 +291,17 @@ class Timestamp(_Timestamp):
     def combine(cls, date, time):
         return cls(datetime.combine(date, time))
 
-    def __new__(cls, object ts_input, object offset=None, tz=None, unit=None):
+    def __new__(cls, object ts_input=None, object offset=None, tz=None, unit=None, **kwargs):
         cdef _TSObject ts
         cdef _Timestamp ts_base
 
-        ts = convert_to_tsobject(ts_input, tz, unit)
+        if ts_input is None:
+            kwargs = dict([ (k, to_py_int_float(v)) for k, v in iteritems(kwargs) ])
+            nano = kwargs.pop('nanosecond', 0)
+            ts = convert_to_tsobject(datetime(**kwargs), tz, unit)
+            ts.bts.us += nano * 1000
+        else:
+            ts = convert_to_tsobject(ts_input, tz, unit)
 
         if ts.value == NPY_NAT:
             return NaT
@@ -642,7 +648,7 @@ class NaTType(_NaT):
 
     def __reduce__(self):
         return (__nat_unpickle, (None, ))
-    
+
     def total_seconds(self):
         # GH 10939
         return np.nan
